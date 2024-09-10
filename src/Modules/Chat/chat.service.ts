@@ -12,8 +12,9 @@ export class ChatService {
     async createNewMessage(newMessageData: CreateNewMessageDto) {
         const newMessage = new this.messageModel(
             { 
-                sender: newMessageData.sender, 
-                payload: newMessageData.message,
+                sender: newMessageData.sender ?? '', 
+                to: newMessageData.to ?? '',
+                payload: newMessageData.message ?? '',
             }
         );
         const savedMessage = await newMessage.save();

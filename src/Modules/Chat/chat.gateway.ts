@@ -1,10 +1,11 @@
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { User } from '../Users/entity/user.schema';
 import { RoomService } from '../Rooms/room.service';
-import { UserService } from '../Users/user.service';
 import { CreateNewMessageInRoomDto } from './dto/createNewMessageToRoom.dto';
 import { CheckUserInRoom } from './dto/CheckUserInRoom.dto';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { Message } from './entity/message.schema';
 
 @WebSocketGateway({ cors: { origin: '*' } }) // Customize as needed
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -12,16 +13,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   constructor(
-    private roomService: RoomService,
-    private userService: UserService,
+    protected roomService: RoomService,
+    protected jwtService: JwtService,
+    protected configService: ConfigService,
   ) {}
 
   async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
-
+    const token = client.handshake.query.token as string;
+    try {
+      const payload = this.jwtService.verify(token, { secret: this.configService.get<string>('JWT_ACCESS_SECRET'), });
+      client.data.user = { userId: payload.sub, username: payload.username };
+      console.log("userId", payload.sub)
+      console.log(`Client connected: ${client.data.user.username}`);
+    } catch (error) {
+      console.error('Unauthorized client');
+      client.disconnect();
+    }
   }
 
-  async handleDisconnect(client: Socket) {
+  handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
   }
 
@@ -34,16 +44,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (checked) { 
       client.join(data.roomId);
       const historyMessage = await this.roomService.getMessagesByRoom(data.roomId)
-      const payload = historyMessage.map((item) => {
-        return `The sender ${item.sender[0]} sent the message: ${item.payload}`
-      });
-      client.emit('getHistory', payload);
+      client.emit('getHistory', historyMessage);
     } 
   }
 
   @SubscribeMessage('getHistory') 
   async handleGetHistory(
-    @MessageBody() data: string[],
+    @MessageBody() data: Message[],
     @ConnectedSocket() client: Socket,
   ) {
     return data;

@@ -6,6 +6,7 @@ import { ChatGateway } from './chat.gateway';
 import { UserModule } from '../Users/user.module';
 import { RoomModule } from '../Rooms/room.module';
 import { ChatController } from './chat.controller';
+import { ChatPrivate } from './chat_private.gateway';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { ChatController } from './chat.controller';
     UserModule,
   ],
   controllers: [ChatController],
-  providers: [ChatService, ChatGateway],
+  providers: [ChatService, ChatGateway, ChatPrivate],
   exports: [ChatService, MongooseModule],
 })
 export class ChatModule {}

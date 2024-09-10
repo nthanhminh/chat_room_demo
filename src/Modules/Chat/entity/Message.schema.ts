@@ -6,8 +6,11 @@ export type MessageDocument = Message & Document;
 
 @Schema()
 export class Message {
-  @Prop({ required: true, type: [{ type: Types.ObjectId, ref: 'User' }]})
-  sender: Types.ObjectId;
+  @Prop({ required: true})
+  sender: string;
+
+  @Prop({ required: true, default: null })
+  to: string;
 
   @Prop({ required: true })
   payload: string;

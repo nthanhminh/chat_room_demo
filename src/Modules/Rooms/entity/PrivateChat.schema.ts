@@ -2,22 +2,18 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Message } from '../../Chat/entity/message.schema';
 
-export type ChatRoomDocument = ChatRoom & Document;
+export type PrivateChatDocument = PrivateChat & Document;
 
 @Schema()
-export class ChatRoom {
-  @Prop({ required: true })
-  roomName: string;
-
+export class PrivateChat {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Message' }], default: [] })
   messages: Message[];
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
-  users: string[]
+  @Prop({ required: true })
+  user1: string
 
   @Prop({ required: true })
-  userHostId: string;
-
+  user2: string
 }
 
-export const ChatRoomSchema = SchemaFactory.createForClass(ChatRoom);
+export const PrivateChatSchema = SchemaFactory.createForClass(PrivateChat);

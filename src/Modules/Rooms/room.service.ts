@@ -1,16 +1,20 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { ChatRoom, ChatRoomDocument } from "./entity/ChatRoom.schema";
-import { Model, Types } from "mongoose";
-import { Message } from "../Chat/entity/Message.schema";
+import { Model } from "mongoose";
 import { CreateRoomDto } from "./dto/createRoom.dto";
 import { ChatService } from "../Chat/chat.service";
-import { idText } from "typescript";
+import { PrivateChat, PrivateChatDocument } from "./entity/PrivateChat.schema";
+import { CreateNewPrivateChatDto } from "./dto/createNewPrivateChat.dto";
+import { FindPrivateChatDto } from "./dto/findPrivateChat.dto";
+import { CreateNewMessageDto } from "../Chat/dto/createNewMessage.dto";
+import { CreateNewMessageToPrivateChatDto } from "../Chat/dto/createNewMessageToPrivateChat.dto";
 
 @Injectable()
 export class RoomService {
     constructor(
         @InjectModel(ChatRoom.name) private chatRoomModel: Model<ChatRoomDocument>,
+        @InjectModel(PrivateChat.name) private privateChatModel: Model<PrivateChatDocument>,
         private chatService: ChatService
     ) {}
 
@@ -61,13 +65,63 @@ export class RoomService {
 
         return updatedRoom;
     }
-
     
     async getMessagesByRoom(roomId: string) {
       const room = await this.chatRoomModel
           .findById(roomId);
           
       return room.messages ?? [];
+    }
+
+    async createNewPrivateChat(createNewPrivateChatDto: CreateNewPrivateChatDto): Promise<PrivateChat> {
+      const newRoom = new this.privateChatModel(
+          {
+            // user1: createNewPrivateChatDto.user1,
+            // user2: createNewPrivateChatDto.user2
+            ...createNewPrivateChatDto
+          }
+      );
+      return newRoom.save();
+    }
+
+    async findPrivateChatById(id: string): Promise<PrivateChat> {
+      return await this.privateChatModel.findById(id);
+    }
+
+    async findPrivateChatByParticipant(findPrivateChatDto: FindPrivateChatDto) {
+      let privateChat = await this.privateChatModel.findOne({
+        user1: findPrivateChatDto.user1,
+        user2: findPrivateChatDto.user2,
+      })
+
+      if(!privateChat) {
+        privateChat = await this.privateChatModel.findOne({
+          user1: findPrivateChatDto.user2,
+          user2: findPrivateChatDto.user1,
+        })
+      }
+
+      return privateChat;
+    }
+
+    async getHistoryMessage(privateChatId: string) {
+      const privateChat = await this.findPrivateChatById(privateChatId);
+      return privateChat.messages ?? [];
+    }
+
+    async pushChatMessage(createNewMessageToPrivateChatDto: CreateNewMessageToPrivateChatDto) {
+      const newMessage = await this.chatService.createNewMessage({
+        sender: createNewMessageToPrivateChatDto.sender,
+        to: createNewMessageToPrivateChatDto.to,
+        message: createNewMessageToPrivateChatDto.message
+      });
+        const privateChatUpdated = await this.privateChatModel.findByIdAndUpdate(
+          createNewMessageToPrivateChatDto.privateChatId,
+          { $push: { messages: newMessage } },
+          { new: true },
+        );
+    
+        return "successfully";
     }
 }
   

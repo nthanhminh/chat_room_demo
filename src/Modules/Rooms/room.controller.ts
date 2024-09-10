@@ -4,6 +4,7 @@ import { ChatRoom } from "./entity/ChatRoom.schema";
 import { CreateRoomDto } from "./dto/createRoom.dto";
 import { AddUserIntoRoomDto } from "./dto/addUserIntoRoom.dto";
 import { createNewMessageInRoom } from "./dto/createNewMessageInRoom.dto";
+import { CreateNewPrivateChatDto } from "./dto/createNewPrivateChat.dto";
 
 @Controller('rooms')
 export class RoomController {
@@ -17,6 +18,11 @@ export class RoomController {
     @Post()
     async createRoom(@Body() createRoomDto: CreateRoomDto): Promise<ChatRoom> {
         return await this.roomService.createNewRoom(createRoomDto);
+    }
+
+    @Post('private')
+    async createNewPrivateChat(@Body() createNewPrivateChatDto: CreateNewPrivateChatDto) {
+        return await this.roomService.createNewPrivateChat(createNewPrivateChatDto);
     }
 
     @Patch()
